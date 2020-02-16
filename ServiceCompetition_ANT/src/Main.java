@@ -1,6 +1,6 @@
 import java.util.Scanner;
 
-public class Main {    //aaa
+public class Main {
 
     public static final int clientCount = inClientCount();
     public static final Client[] clientPlaces = inClientPlace();
