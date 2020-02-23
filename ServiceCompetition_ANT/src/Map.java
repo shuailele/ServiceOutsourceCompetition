@@ -1,8 +1,6 @@
 
 public class Map {                  //地图类
 
-
-
     public static final int clientCount = Main.clientCount;                 //客户数量;
     public static final Client []cc = Main.clientPlaces;  //每个客户的位置
     public static final double distance[][] = Main.distance;//表示边 横坐标表示出发点 纵坐标表示到达点 矩阵中的值表示路径长度 0表示两点之间不存在边
