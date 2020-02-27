@@ -1,5 +1,3 @@
-
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 
@@ -9,7 +7,7 @@ public class AntProject {
     public static int count = 0;              //连续多少代没有产生更优解
     private final int antCount = Main.carCount;           //蚂蚁的数量
     private int realAntCount = antCount;                    //实际使用的车辆数量
-    public static double rou = 0.7;            //信息素的挥发系数
+    public static double rou = 0.5;            //信息素的挥发系数
     private final int itCount = 500;           //最大迭代次数
 
     public int getItCount(){        //用于曲线图
@@ -206,7 +204,7 @@ public class AntProject {
 
 
 
-            double tempMethod = tempLength * Ant.beta + tempRemainingRoom * Ant.gamma;      //长度和满载率临时综合值
+            double tempMethod = tempLength * Ant.beta + tempRemainingRoom * tempRealCount * Ant.gamma;      //长度和满载率临时综合值
             if(tempMethod < bestMethod){
                 realAntCount = tempRealCount;
                 count = 0;
