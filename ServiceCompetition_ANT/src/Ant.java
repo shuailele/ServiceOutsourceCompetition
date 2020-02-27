@@ -1,7 +1,5 @@
 //规定客户数组中下标为0表示配送中心的位置
 
-//当输入最大里程数小于全部距离时  程序会无响应  死循环
-
 
 import java.util.ArrayDeque;
 import java.util.LinkedList;
@@ -251,10 +249,10 @@ public class Ant {                  //蚂蚁类
             if(hormone == 0.0){                 //如果直接相连点全部无法配送
 
                 while(true){
-                    if(Map.distance[curPlace][0] > 0){
-                        to = 0;
-                        break;
-                    }
+//                    if(Map.distance[curPlace][0] > 0){
+//                        to = 0;
+//                        break;
+//                    }
 
                     int place = rnd(Map.clientCount);
 
