@@ -1,0 +1,82 @@
+import java.util.HashSet;
+import java.util.LinkedList;
+
+public class LinkedHashSet<E> extends HashSet<E> {
+    private LinkedList<E> list;
+
+    LinkedHashSet(){
+        super();
+        list = new LinkedList<>();
+    }
+
+    //向链式哈西集合中添加一个元素
+    @Override
+    public boolean add(E e){
+        list.addLast(e);
+
+        return super.add(e);
+    }
+
+    //删除链式哈希集合中最后一个添加的元素
+    public E removeLast(){
+        E e = list.removeLast();
+        super.remove(e);
+
+        return e;
+    }
+
+    //删除链式哈希集合中最开始一个添加的元素
+    public E removeFirst(){
+        E e = list.removeFirst();
+        super.remove(e);
+
+        return e;
+    }
+
+    //判断链式哈希集合中是否包含元素e
+    @Override
+    public boolean contains(Object e){
+        return super.contains(e);
+    }
+
+    //查看链式哈希集合中最后一个添加的元素
+    public E peekLast(){
+        return list.peekLast();
+    }
+
+    //查看链式哈希集合中最开始一个添加的元素
+    public E peekFirst(){
+        return list.peekFirst();
+    }
+
+    //查看链式哈希集合是否为空
+    @Override
+    public boolean isEmpty() {
+        return super.isEmpty() && list.isEmpty();
+    }
+
+    //获取链式哈希集合中元素的个数
+    @Override
+    public int size() {
+        int size = super.size();
+        if(size == list.size())
+            return size;
+        else
+            throw new IllegalArgumentException("链式哈希集合获取个数错误");
+    }
+
+    //清空链式哈希集合中的元素
+    @Override
+    public void clear() {
+        super.clear();
+        list.clear();
+    }
+
+    //链式哈希集合的克隆
+    @Override
+    public Object clone() {
+            LinkedHashSet<E> newSet = (LinkedHashSet<E>) super.clone();
+            newSet.list = (LinkedList<E>) list.clone();
+            return newSet;
+    }
+}
