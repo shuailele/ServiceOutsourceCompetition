@@ -1,5 +1,8 @@
+
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class AntProject {
 
@@ -18,6 +21,7 @@ public class AntProject {
     private double bestLength;                  //记录最优方案的路径长度
     private ArrayList<String> bestTabu;           //记录最佳方案
     private double carryTime;                     //运送时间
+    private final int multiple = 3;                 //长度倍数
     private Ant ant[];
 
     public double itorBestLength[];             //记录每次迭代后的最佳路径长度        构造曲线图用
@@ -83,6 +87,7 @@ public class AntProject {
         int tempRealCount = antCount;
 
         while(max < itCount){
+            tempRealCount = 0;
             double tempLength = 0;
             double tempRemainingRoom = 0;       //每次路线的满载率之和
             boolean isOnceComplete = true;      //蚁群循环中是否只执行一次
@@ -94,8 +99,17 @@ public class AntProject {
                         tempLength += ant[i].mov();
 
                         if(ant[i].getDestroy()){
-                            while (ant[i].path.size() > 1){
+                            int last = ant[i].tabu.peekLast();
+
+                            int toed = ant[i].tabu.removeLast();
+                            int fromed = ant[i].tabu.peekLast();
+                            tempLength -= Map.distance[fromed][toed];
+                            ant[i].length -=Map.distance[fromed][toed];
+
+                            while (ant[i].path.size() > 1 && ant[i].path.peekLast() != last){
+
                                 int to = ant[i].path.peekLast();
+
                                 ant[i].path.removeLast();
                                 if(ant[i].path.isEmpty())
                                     break;
@@ -106,34 +120,33 @@ public class AntProject {
                                 if(ant[i].tabu.size() > 1)
                                     ant[i].tabu.removeLast();
                             }
+
                         }
 
-                        if(ant[i].path.peekLast() == 0){
-                            ant[i].path.clear();
-                            ant[i].path.addLast(0);
-                        }
+//                        if(ant[i].path.peekLast() == 0){
+//                            ant[i].path.clear();
+//                            ant[i].path.addLast(0);
+//                        }
 
                         if(ant[i].getDestroy()){
                             ant[i].setDestroy(false);
                             continue ;
                         }
 
-
-
-                        if(ant[i].tabu.peekLast() == 0 && ant[i].tabu.size() != 1)
-                            ant[i].setAllowChoseNextCity(false);
-
-                        if(tempLength > (5 * bestLength)){
+                        if(tempLength > (multiple * bestLength)){
                             break ;
                             //如果此次方案长度太长则舍弃此次方案
                         }
+
+                        if(ant[i].tabu.peekLast() == 0 && ant[i].tabu.size() != 1)
+                            ant[i].setAllowChoseNextCity(false);
                     }
 
                     ant[i].remainingRoom.add((ant[i].getCapacity() - ant[i].getRoom()) / ant[i].getCapacity());
 
                     ant[i].resetGo();
 
-                    if(tempLength > (5 * bestLength)){
+                    if(tempLength > (multiple * bestLength)){
                         //如果此次方案长度太长则舍弃此次方案
                         break Beyond;
                     }
@@ -154,7 +167,7 @@ public class AntProject {
                 isOnceComplete = false;
             }
 
-            if(tempLength > (5 * bestLength)){                    //如果此次方案长度太长则舍弃此次方案
+            if(tempLength > (multiple * bestLength)){                    //如果此次方案长度太长则舍弃此次方案
                 for(int i = 0 ; i < antCount ; ++i)
                     ant[i].reset();         //重置蚂蚁数据
 
@@ -164,7 +177,7 @@ public class AntProject {
             }
 
 
-            for(int i = 0 ; i < antCount ; ++i){
+            for(int i = 0 ; i < tempRealCount ; ++i){
 //                tempLength += ant[i].length;
 
                 ArrayDeque<Double> temp = ant[i].remainingRoom.clone();
@@ -174,8 +187,8 @@ public class AntProject {
             }
 
 
-
-//                for(int i = 0 ; i < realAntCount ; ++i){
+//            System.out.println("路径长度："+tempLength);
+//                for(int i = 0 ; i < tempRealCount ; ++i){
 //
 //                    StringBuffer buffer = new StringBuffer();
 //                    buffer.append("蚂蚁:"+i+" 车型" + ant[i].getCapacity() + "：");
@@ -183,8 +196,8 @@ public class AntProject {
 //                    ArrayDeque<Integer> temp = ant[i].tabu.clone();
 //                    while(!temp.isEmpty()){
 //
-//                        //buffer.append(Map.cc[temp.peekFirst()].name);
-//                        buffer.append(temp.peekFirst());
+//                        buffer.append(Map.cc[temp.peekFirst()].name);
+//                        //buffer.append(temp.peekFirst());
 //                        temp.removeFirst();
 //
 //                        if(!temp.isEmpty())
@@ -192,19 +205,21 @@ public class AntProject {
 //                    }
 //                    System.out.print(" ");
 //
-//                    while(!ant[i].remainingRoom.isEmpty()){
-//                        buffer.append(" "+ "满载率：" + (ant[i].remainingRoom.removeFirst() * 100) + "%");
+//                    ArrayDeque<Double> temp2 = ant[i].remainingRoom.clone();
+//
+//                    while(!temp2.isEmpty()){
+//                        buffer.append(" "+ "满载率：" + (temp2.removeFirst() * 100) + "%");
 //                    }
 //
-//                    String temp2 = buffer.toString();
+//                    String temp3 = buffer.toString();
 //
-//                    System.out.println(temp2);
+//                    System.out.println(temp3);
 //                }
 
 
 
 
-            double tempMethod = tempLength * Ant.beta + tempRemainingRoom * tempRealCount * Ant.gamma;      //长度和满载率临时综合值
+            double tempMethod = tempLength * Ant.beta + (tempRemainingRoom * Ant.gamma) * tempRealCount;      //长度和满载率临时综合值
             if(tempMethod < bestMethod){
                 realAntCount = tempRealCount;
                 count = 0;
