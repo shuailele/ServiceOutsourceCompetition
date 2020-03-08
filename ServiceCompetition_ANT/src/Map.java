@@ -1,4 +1,3 @@
-
 public class Map {                  //地图类
 
     public static final int clientCount = Main.clientCount;                 //客户数量;
