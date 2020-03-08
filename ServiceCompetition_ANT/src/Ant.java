@@ -1,9 +1,11 @@
 //规定客户数组中下标为0表示配送中心的位置
 
+//当输入最大里程数小于全部距离时  程序会无响应  死循环
 
 import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.Vector;
 
 public class Ant {                  //蚂蚁类
 
@@ -14,7 +16,7 @@ public class Ant {                  //蚂蚁类
     private static final double maxRemoving = Main.maxRemoving;     //车辆行驶的最大公里数
     private boolean allowChoseNextCity = true;      //是否允许访问下一个城市  true为允许  false为不允许
     private boolean destroy = false;                //当前路径是否恶意增加信息素
-    public LinkedList<Integer> path;               //辅助判断当前路径是否恶意增加信息素
+    public LinkedHashSet<Integer> path;               //辅助判断当前路径是否恶意增加信息素
     public static final double alpha = 2;            //地图上残留信息素对蚂蚁产生信息素的影响比例
     public static final double beta = 5;             //两点间距离对蚂蚁产生信息素的影响比例
     public static final double gamma = 3;            //载重率对蚂蚁选择下一城市的影响比例      (gamma / (alpha + beta + gamma) * (capacity - room) / capacity)
@@ -38,7 +40,7 @@ public class Ant {                  //蚂蚁类
         this.capacity = capacity;
         room = capacity;
         //pass = new boolean[Map.clientCount + 1];
-        path = new LinkedList<>();
+        path = new LinkedHashSet<>();
         length = 0;
         tabu = new ArrayDeque<>();
         remainingRoom = new ArrayDeque<>();
@@ -114,7 +116,6 @@ public class Ant {                  //蚂蚁类
 //        }
 
         tabu.add(place);
-
 
         if(/*place != 0 && */room >= Map.cc[place].need && Map.ok[place] == false){
             if(Map.cc[place].need == 0 && place != 0)
@@ -263,40 +264,45 @@ public class Ant {                  //蚂蚁类
                 }
             }
             else{                               //如果有直接相连的点可以配送    ！有也不一定走可以直达的点 但是走的概率大
-                int i = 0;
-                for(i = 0 ; i < Map.clientCount + 1 ; ++i){
-                    if(Map.distance[curPlace][i] > 0 && Map.distance[curPlace][i] <= maxRemoving){
+//                int i = 0;
+//                for(i = 0 ; i < Map.clientCount + 1 ; ++i){
+//                    if(Map.distance[curPlace][i] > 0 && Map.distance[curPlace][i] <= maxRemoving){
+//
+//                        double curPlaceHormone = (antProduct(curPlace, i) * (alpha + beta)) / (alpha + beta + gamma);        //当前地点的信息素和满载率综合值
+//                        if(Map.ok[i] == false)
+//                            curPlaceHormone += ((capacity - (room - Map.cc[i].need)) / capacity * gamma) / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
+//
+//                        if(Map.distance[curPlace][i] > 0 && (Map.ok[i] == true ||             //逻辑可能存在错误
+//                                Map.cc[i].need > room) && Map.distance[curPlace][i] <= maxRemoving)
+//                            curPlaceHormone *= 0.3;
+//
+//                        if(rnd(hormone) <= curPlaceHormone){
+//                            return i;
+//                        }
+//                    }
+//                }
+//
+//                if(i == Map.clientCount + 1){               //如果上一步选择失败则选择信息素和满载率综合值最大的走
+//                    hormone = -1;
+//                    for(int j = 0 ; j < Map.clientCount + 1 ; ++j)
+//                        if(Map.distance[curPlace][j] > 0 && Map.ok[j] == false &&
+//                                Map.cc[j].need <= room && Map.distance[curPlace][j] <= maxRemoving){
+//
+//                            double curPlaceHormone = (antProduct(curPlace, j) * (alpha + beta) +        //当前地点的信息素和满载率综合值
+//                                    ((capacity - (room - Map.cc[j].need)) / capacity) * gamma) / (alpha + beta + gamma);
+//
+//                            if (hormone < curPlaceHormone){
+//                                hormone = curPlaceHormone;
+//                                to = j;
+//                            }
+//                        }
+//                }
 
-                        double curPlaceHormone = (antProduct(curPlace, i) * (alpha + beta)) / (alpha + beta + gamma);        //当前地点的信息素和满载率综合值
-                        if(Map.ok[i] == false)
-                            curPlaceHormone += ((capacity - (room - Map.cc[i].need)) / capacity * gamma) / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
+                to = roulette(curPlace);            //使用轮盘赌算法计算下一个城市
+                if(to == -1)
+                    throw new IllegalArgumentException("轮盘赌算法发生错误");
+                return to;
 
-                        if(!(Map.distance[curPlace][i] > 0 && Map.ok[i] == false &&
-                                Map.cc[i].need <= room && Map.distance[curPlace][i] <= maxRemoving))
-                            curPlaceHormone *= 0.3;
-
-                        if(rnd(hormone) <= curPlaceHormone){
-                            return i;
-                        }
-                    }
-
-                }
-
-                if(i == Map.clientCount + 1){               //如果上一步选择失败则选择信息素和满载率综合值最大的走
-                    hormone = -1;
-                    for(int j = 0 ; j < Map.clientCount + 1 ; ++j)
-                        if(Map.distance[curPlace][j] > 0 && Map.ok[j] == false &&
-                                Map.cc[j].need <= room && Map.distance[curPlace][j] <= maxRemoving){
-
-                            double curPlaceHormone = (antProduct(curPlace, j) * (alpha + beta) +        //当前地点的信息素和满载率综合值
-                                    ((capacity - (room - Map.cc[j].need)) / capacity) * gamma) / (alpha + beta + gamma);
-
-                            if (hormone < curPlaceHormone){
-                                hormone = curPlaceHormone;
-                                to = j;
-                            }
-                        }
-                }
             }
         }
         else{                                       //当连续没产生更优解代数大于等于6时
@@ -328,14 +334,23 @@ public class Ant {                  //蚂蚁类
         if (nextPlace < 0)
             throw new IllegalArgumentException("选择的下一个城市错误");
 
-        if(Map.ok[nextPlace] == false/* && nextPlace != 0*/){
+        if(Map.ok[nextPlace] == false && Map.cc[nextPlace].need <= room && Map.cc[nextPlace].need != 0/* && nextPlace != 0*/){
             path.clear();
-            path.addLast(nextPlace);
+            path.add(nextPlace);
         }
         else{
-            path.addLast(nextPlace);
-            if(path.size() > 1 && path.getFirst() == path.getLast())
+            if(path.size() > 1 && path.peekFirst() != 0 && nextPlace == 0){
+                path.clear();
+                path.add(nextPlace);
+                return false;
+            }
+
+            if(path.contains(nextPlace))
                 return true;
+
+            path.add(nextPlace);
+//            if(path.size() > 1 && path.peekFirst() == path.peekLast())
+//                return true;
         }
 
         return false;
@@ -352,6 +367,46 @@ public class Ant {                  //蚂蚁类
     }
 
 
+    //轮盘赌算法
+    public int roulette(int curPlace){
+        double sum = 0;
+        for(int i = 0 ; i < Map.clientCount + 1 ; ++i){
+            if(Map.distance[curPlace][i] > 0 && Map.distance[curPlace][i] <= maxRemoving){
+
+                double curPlaceHormone = (antProduct(curPlace, i) * (alpha + beta)) / (alpha + beta + gamma);        //当前地点的信息素和满载率综合值
+                if(Map.ok[i] == false)
+                    curPlaceHormone += ((capacity - (room - Map.cc[i].need)) / capacity * gamma) / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
+
+                if(Map.distance[curPlace][i] > 0 && (Map.ok[i] == true ||             //逻辑可能存在错误
+                        Map.cc[i].need > room) && Map.distance[curPlace][i] <= maxRemoving)
+                    curPlaceHormone *= 0.3;
+
+                sum += curPlaceHormone;
+                }
+            }
+
+        double random = rnd(sum);
+
+        double sum2 = 0;
+        for(int i = 0 ; i < Map.clientCount + 1 ; ++i){
+            if(Map.distance[curPlace][i] > 0 && Map.distance[curPlace][i] <= maxRemoving){
+
+                double curPlaceHormone = (antProduct(curPlace, i) * (alpha + beta)) / (alpha + beta + gamma);        //当前地点的信息素和满载率综合值
+                if(Map.ok[i] == false)
+                    curPlaceHormone += ((capacity - (room - Map.cc[i].need)) / capacity * gamma) / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
+
+                if(Map.distance[curPlace][i] > 0 && (Map.ok[i] == true ||             //逻辑可能存在错误
+                        Map.cc[i].need > room) && Map.distance[curPlace][i] <= maxRemoving)
+                    curPlaceHormone *= 0.3;
+
+                sum2 += curPlaceHormone;
+
+                if(random <= sum2)
+                    return i;
+            }
+        }
+        return -1;
+    }
 
     //获得随机数, 范围为 [low, uper]
     public double  rnd(double low, double uper)
@@ -359,16 +414,16 @@ public class Ant {                  //蚂蚁类
         if(low > uper || low < 0 || uper < 0)
             throw new IllegalArgumentException("输入的范围存在错误");
 
-        return (random.nextDouble() * (uper - low + 1) + low) % (uper - low + 1);
+        return low + random.nextDouble() * uper % (uper - low + 1);
     }
 
-    //获得随机数, 范围为 [0, uper]
+    //获得随机数, 范围为 [0, uper)
     public double  rnd(double uper)
     {
         if(uper < 0)
             throw new IllegalArgumentException("输入的范围存在错误");
 
-        return random.nextDouble() * (uper + 1) % (uper + 1);
+        return random.nextDouble() * uper;
     }
 
     //返回[0,uper]之间的整数
