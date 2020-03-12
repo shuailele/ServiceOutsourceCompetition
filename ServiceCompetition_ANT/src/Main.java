@@ -2,14 +2,15 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static final int clientCount = inClientCount();
-    public static final Client[] clientPlaces = inClientPlace();
-    public static final double distance[][] = inDistance();
-    public static final int carCount = inCarCount();
-    public static final double carCapacity = inCarCapacity();
-    public static final int unLoadTime = inUnLoadTime();
-    public static final int maxRemoving = inMaxRemoving();
-    public static final int pace = inPace();
+    public static final int clientCount = inClientCount();              //客户数量
+    public static final Client[] clientPlaces = inClientPlace();        //客户位置（点的位置）
+    public static final double distance[][] = inDistance();             //输入客户间的距离（输入边）
+    public static final int carType = inCarType();                      //输入车辆类型的数量
+    public static final int []carCount = inCarCount();                    //输入车辆数量
+    public static final double []carCapacity = inCarCapacity();           //输入车辆承载量
+    public static final int unLoadTime = inUnLoadTime();                //输入卸货时间
+    public static final int maxRemoving = inMaxRemoving();              //输入最大行驶距离
+    public static final int pace = inPace();                            //输入车辆行驶速度
 
     AntProject project;
 
@@ -26,7 +27,7 @@ public class Main {
 
     public Main(){
         project = new AntProject();
-        project.setAllAntCapacity();
+        //project.setAllAntCapacity();
         project.startSearch();                      //迭代搜索
         System.out.println("迭代搜索完成");
         project.calculationCarryTime();             //计算运送时间
@@ -207,20 +208,57 @@ public class Main {
         return 10;
     }
 
-    //用于在蚁群类中提供车辆数量
-    public static int inCarCount(){
+    //输入车辆类型的数量
+    public static int inCarType(){
         Scanner scanner = new Scanner(System.in);
-        System.out.println("请输入车辆数量：");
-//        return scanner.nextInt();
-        return 10;
+        System.out.println("请输入车辆类型的数量：");
+        return scanner.nextInt();
+//        return 1;
+    }
+
+    //用于在蚁群类中提供车辆数量
+    public static int[] inCarCount(){
+        int []carCount = new int[carType + 1];
+        int allCarCount = 0;                //记录所有车辆的总数量
+        Scanner scanner = new Scanner(System.in);
+        for(int i = 1 ; i <= carType ; ++i){
+            System.out.println("请输入车辆类型" + i + "的数量：");
+            carCount[i] = scanner.nextInt();
+
+            allCarCount += carCount[i];
+        }
+
+        carCount[0] = allCarCount;          //carCount0位置存放的是总车辆的数量
+
+        return carCount;
+
+
+//        int []arr = new int[2];
+//        arr[0] = 10;
+//        arr[1] = 10;
+//        return arr;
     }
 
     //用于在蚁群类中提供车辆承载量
-    public static double inCarCapacity(){
+    public static double[] inCarCapacity(){
+        double []carCapacity = new double[carType + 1];
+        double maxCarCapacity = 0;          //记录所有车辆中的最大的承载量
         Scanner scanner = new Scanner(System.in);
-        System.out.println("请输入车辆的承载量：");
-//        return scanner.nextDouble();
-        return 5;
+        for (int i = 1 ; i <= carType ; ++i){
+            System.out.println("请输入车辆类型" + i + "的承载量：");
+            carCapacity[i] = scanner.nextDouble();
+
+            if(carCapacity[i] > maxCarCapacity)
+                maxCarCapacity = carCapacity[i];
+        }
+        carCapacity[0] = maxCarCapacity;        //carCapacity0位置存放的是所有车辆的最大的承载量
+        return carCapacity;
+
+
+//        double []arr = new double[2];
+//        arr[0] = 5;
+//        arr[1] = 5;
+//        return arr;
     }
 
 }
