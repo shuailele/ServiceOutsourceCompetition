@@ -2,14 +2,15 @@
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class AntProject {
 
     Map map;                                  //地图类
     public static int count = 0;              //连续多少代没有产生更优解
-    private final int antCount = Main.carCount;           //蚂蚁的数量
-    private int realAntCount = antCount;                    //实际使用的车辆数量
+    private final int []antCount = Main.carCount;           //蚂蚁的数量
+    private final double []antCapacity = Main.carCapacity;          //蚂蚁的承载量
+    private final int antType = Main.carType;                   //蚂蚁的种类
+    private int realAntCount = antCount[0];                    //实际使用的车辆数量
     public static double rou = 0.5;            //信息素的挥发系数
     private final int itCount = 500;           //最大迭代次数
 
@@ -33,9 +34,15 @@ public class AntProject {
         bestMethod = Double.MAX_VALUE;
         bestLength = Double.MAX_VALUE;
         bestTabu = new ArrayList<>();
-        ant = new Ant[antCount];
-        for(int i = 0 ; i < antCount ; ++i)
-            ant[i] = new Ant();
+        ant = new Ant[antCount[0] + 1];         //蚂蚁0表示最大承载量的蚂蚁     用于模拟行走路线
+        int curCount = 0;
+        for(int i = 1 ; i <= antType ; ++i){
+            for(int j = 1 + curCount ; j <= antCount[i] + curCount ; ++j){
+                ant[j] = new Ant(antCapacity[i]);
+            }
+            curCount += antCount[i];
+        }
+        ant[0] = new Ant(antCapacity[0]);
 
         initAnt();                              //初始化蚁群
 
@@ -50,7 +57,7 @@ public class AntProject {
 
     //获取蚁群的数量
     public int getAntCount(){
-        return antCount;
+        return antCount[0];
     }
 
     //获取运送时间
@@ -60,7 +67,7 @@ public class AntProject {
 
     //设置每辆车的承载量
     public void setAllAntCapacity(){
-        for(int i = 0 ; i < antCount ; ++i)
+        for(int i = 0 ; i < antCount[0] ; ++i)
             ant[i].setCapacity(5);
     }
 
@@ -75,61 +82,51 @@ public class AntProject {
 
     //初始化蚁群
     public void initAnt(){
-        for(int i = 0 ; i < antCount ; ++i){                    //将配送中心设置为每只蚂蚁的初始点
-            //ant[i].resetRoom();
-            ant[i].addPlace(0);
-        }
+        ant[0].addPlace(0);
     }
 
     //迭代搜索
     public void startSearch(){
         int max = 0;                                //当前的代数
-        int tempRealCount = antCount;
+        int tempRealCount;
 
         while(max < itCount){
             tempRealCount = 0;
             double tempLength = 0;
             double tempRemainingRoom = 0;       //每次路线的满载率之和
-            boolean isOnceComplete = true;      //蚁群循环中是否只执行一次
+
+            int []tempAntCount = antCount.clone();      //车辆数量的数组  用于底下的更改
 
             Beyond:
             while(!Map.end()){
-                for(int i = 0 ; i < antCount ; ++i){
-                    while(ant[i].getAllowChoseNextCity()){
-                        tempLength += ant[i].mov();
+                //一下为更改的车辆选择
+                    while(ant[0].getAllowChoseNextCity()){
+                        tempLength += ant[0].mov();
 
-                        if(ant[i].getDestroy()){
-                            int last = ant[i].tabu.peekLast();
+                        if(ant[0].getDestroy()){                //如果该车辆行驶属于恶意破坏信息素平衡，则该车辆回退
+                            int last = ant[0].tabu.peekLast();
 
-                            int toed = ant[i].tabu.removeLast();
-                            int fromed = ant[i].tabu.peekLast();
+                            int toed = ant[0].tabu.removeLast();
+                            int fromed = ant[0].tabu.peekLast();
                             tempLength -= Map.distance[fromed][toed];
-                            ant[i].length -=Map.distance[fromed][toed];
+                            ant[0].length -=Map.distance[fromed][toed];
 
-                            while (ant[i].path.size() > 1 && ant[i].path.peekLast() != last){
+                            while (ant[0].path.size() > 1 && ant[0].path.peekLast() != last){
 
-                                int to = ant[i].path.peekLast();
+                                int to = ant[0].path.peekLast();
 
-                                ant[i].path.removeLast();
-                                if(ant[i].path.isEmpty())
+                                ant[0].path.removeLast();
+                                if(ant[0].path.isEmpty())
                                     break;
-                                int from = ant[i].path.peekLast();
+                                int from = ant[0].path.peekLast();
 
                                 tempLength -= Map.distance[from][to];
-                                ant[i].length -= Map.distance[from][to];
-                                if(ant[i].tabu.size() > 1)
-                                    ant[i].tabu.removeLast();
+                                ant[0].length -= Map.distance[from][to];
+                                if(ant[0].tabu.size() > 1)
+                                    ant[0].tabu.removeLast();
                             }
 
-                        }
-
-//                        if(ant[i].path.peekLast() == 0){
-//                            ant[i].path.clear();
-//                            ant[i].path.addLast(0);
-//                        }
-
-                        if(ant[i].getDestroy()){
-                            ant[i].setDestroy(false);
+                            ant[0].setDestroy(false);
                             continue ;
                         }
 
@@ -138,38 +135,73 @@ public class AntProject {
                             //如果此次方案长度太长则舍弃此次方案
                         }
 
-                        if(ant[i].tabu.peekLast() == 0 && ant[i].tabu.size() != 1)
-                            ant[i].setAllowChoseNextCity(false);
+                        if(ant[0].tabu.peekLast() == 0 && ant[0].tabu.size() != 1)
+                            ant[0].setAllowChoseNextCity(false);
                     }
 
-                    ant[i].remainingRoom.add((ant[i].getCapacity() - ant[i].getRoom()) / ant[i].getCapacity());
+                    int chooseCapacity = 0;
+                    for(int i = 1 ; i <= antType ; ++i){            //将正确的车型选择出来
+                        if(ant[0].getCapacity() - ant[0].getRoom() <= antCapacity[i] && antCapacity[i] <= antCapacity[chooseCapacity])
+                            chooseCapacity = i;
+                    }
 
-                    ant[i].resetGo();
+                     int startSite = 1;
+                      for(int i = 1 ; i <= antType ; ++i){
+                           if(antCapacity[i] == antCapacity[chooseCapacity])
+                                break ;
+                          startSite += antCount[i];
+                      }
+
+                     int chooseAnt = startSite;
+
+                    if(tempAntCount[chooseCapacity] <= 0){          //如果选择的车型数量不足   证明该车型车辆所有都被使用过
+                        int minUsed = ant[chooseAnt].used;
+                        for(int i = startSite ; i < antCount[chooseCapacity] + startSite ; ++i){
+                            if(ant[i].used < minUsed){
+                                chooseAnt = i;
+                                break ;
+                            }
+                        }
+
+                        ++ant[chooseAnt].used;
+                    }
+                    else{
+                        for(int i = startSite ; i < antCount[chooseCapacity] + startSite ; ++i){
+                            if(ant[i].used == 0){      //选择出该使用的车辆并且该车没被使用过
+                                chooseAnt = i;
+                                ++ant[i].used;
+                                --tempAntCount[chooseCapacity];
+                                break ;
+                            }
+                        }
+                    }
+
+
+                    ant[chooseAnt].copyInformation(ant[0]);
+
+                    ant[0].resetGo();
 
                     if(tempLength > (multiple * bestLength)){
                         //如果此次方案长度太长则舍弃此次方案
                         break Beyond;
                     }
 
-                    if(isOnceComplete == false){
-                        if(Map.end())
-                            break;
-                        else
-                            continue;
-                    }
-
                     if(Map.end()){
-                        tempRealCount = i + 1;
+                        for(int i = 1 ; i <= antType ; ++i){
+                            tempRealCount += antCount[i] - tempAntCount[i];
+                        }
+
                         break;
                     }
-                }
 
-                isOnceComplete = false;
+
+                //以上为更改过得车辆选择
             }
 
             if(tempLength > (multiple * bestLength)){                    //如果此次方案长度太长则舍弃此次方案
-                for(int i = 0 ; i < antCount ; ++i)
+                for(int i = 0 ; i <= antCount[0] ; ++i)
                     ant[i].reset();         //重置蚂蚁数据
+                ant[0].addPlace(0);
 
                 reset();                    //重置地图信息
 
@@ -177,18 +209,19 @@ public class AntProject {
             }
 
 
-            for(int i = 0 ; i < tempRealCount ; ++i){
+            for(int i = 1 ; i <= antCount[0] ; ++i){
 //                tempLength += ant[i].length;
-
-                ArrayDeque<Double> temp = ant[i].remainingRoom.clone();
-                while(!temp.isEmpty()){
-                    tempRemainingRoom += temp.removeFirst();
+                if(ant[i].used != 0){
+                    ArrayDeque<Double> temp = ant[i].remainingRoom.clone();
+                    while(!temp.isEmpty()){
+                        tempRemainingRoom += temp.removeFirst();
+                    }
                 }
             }
 
 
 //            System.out.println("路径长度："+tempLength);
-//                for(int i = 0 ; i < tempRealCount ; ++i){
+//                for(int i = 1 ; i <= tempRealCount ; ++i){
 //
 //                    StringBuffer buffer = new StringBuffer();
 //                    buffer.append("蚂蚁:"+i+" 车型" + ant[i].getCapacity() + "：");
@@ -246,8 +279,9 @@ public class AntProject {
 
             reset();                    //重置地图信息
 
-            for(int i = 0 ; i < antCount ; ++i)
+            for(int i = 0 ; i <= antCount[0] ; ++i)
                 ant[i].reset();         //重置蚂蚁数据
+            ant[0].addPlace(0);
 
             itorBestLength[max] = tempLength;       //构造折线图用
 
@@ -259,35 +293,36 @@ public class AntProject {
     public void updateTabu(){
         bestTabu.clear();                       //清空之前的最优方案
 
-        for(int i = 0 ; i < realAntCount ; ++i){
+        for(int i = 1 ; i <= antCount[0] ; ++i){
+            if(ant[i].used != 0){
+                StringBuffer buffer = new StringBuffer();
+                buffer.append("蚂蚁:"+i+" 车型" + ant[i].getCapacity() + "：");
 
-            StringBuffer buffer = new StringBuffer();
-            buffer.append("蚂蚁:"+i+" 车型" + ant[i].getCapacity() + "：");
+                ArrayDeque<Integer> temp = ant[i].tabu.clone();
+                while(!temp.isEmpty()){
 
-            ArrayDeque<Integer> temp = ant[i].tabu.clone();
-            while(!temp.isEmpty()){
+                    buffer.append(Map.cc[temp.peekFirst()].name);
+//                buffer.append(temp.peekFirst());
+                    temp.removeFirst();
 
-                //buffer.append(Map.cc[temp.peekFirst()].name);
-                buffer.append(temp.peekFirst());
-                temp.removeFirst();
+                    if(!temp.isEmpty())
+                        buffer.append("->");
+                }
 
-                if(!temp.isEmpty())
-                    buffer.append("->");
+                while(!ant[i].remainingRoom.isEmpty()){
+                    buffer.append(" "+ "满载率：" + (ant[i].remainingRoom.removeFirst() * 100) + "%");
+                }
+
+                String temp2 = buffer.toString();
+
+                bestTabu.add(temp2);
             }
-
-            while(!ant[i].remainingRoom.isEmpty()){
-                buffer.append(" "+ "满载率：" + (ant[i].remainingRoom.removeFirst() * 100) + "%");
-            }
-
-            String temp2 = buffer.toString();
-
-            bestTabu.add(temp2);
         }
     }
 
     //更新地图上的信息素         与c++ant源代码的思路不同信息素的更新方式不同
     private void updateTrial(){
-        for(int i = 0 ; i < antCount ; ++i){
+        for(int i = 0 ; i < antCount[0] ; ++i){
             ArrayDeque<Integer> temp = ant[i].tabu.clone();
             while(!temp.isEmpty()){
                 int from = temp.peekFirst();
