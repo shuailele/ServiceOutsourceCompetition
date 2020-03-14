@@ -253,6 +253,7 @@ public class AntProject {
 
 
             double tempMethod = tempLength * Ant.beta + (tempRemainingRoom * Ant.gamma) * tempRealCount;      //长度和满载率临时综合值
+            System.out.println("tempMethod="+tempMethod);
             if(tempMethod < bestMethod){
                 realAntCount = tempRealCount;
                 count = 0;
