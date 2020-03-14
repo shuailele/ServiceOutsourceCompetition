@@ -1,18 +1,20 @@
 //规定客户数组中下标为0表示配送中心的位置
-
+//BigDecimal类中 add加法 subtract减法 multiply乘法 divide除法
 //当输入最大里程数小于全部距离时  程序会无响应  死循环
 
+import java.math.BigDecimal;
 import java.util.ArrayDeque;
 import java.util.Random;
 
 public class Ant {                  //蚂蚁类
 
     private Random random;   //用于获取随机数
-    private double capacity;        //车的承载量
-    private double room;            //车辆空余的空间
+    private BigDecimal capacity;        //车的承载量
+    private BigDecimal room;            //车辆空余的空间
     private static final double maxRemoving = Main.maxRemoving;     //车辆行驶的最大公里数
     private boolean allowChoseNextCity = true;      //是否允许访问下一个城市  true为允许  false为不允许
     private boolean destroy = false;                //当前路径是否恶意增加信息素
+    private final int digit = 6;                          //表示小数保留位数
     public LinkedHashSet<Integer> path;               //辅助判断当前路径是否恶意增加信息素
     public static final double alpha = 2;            //地图上残留信息素对蚂蚁产生信息素的影响比例
     public static final double beta = 5;             //两点间距离对蚂蚁产生信息素的影响比例
@@ -35,8 +37,8 @@ public class Ant {                  //蚂蚁类
             throw new IllegalArgumentException("指定的车辆承载量错误");
 
         random = new Random(System.currentTimeMillis());        //使用系统时间作为种子
-        this.capacity = capacity;
-        room = capacity;
+        this.capacity = new BigDecimal(Double.toString(capacity));
+        room = new BigDecimal(Double.toString(capacity));
         path = new LinkedHashSet<>();
         length = 0;
         tabu = new ArrayDeque<>();
@@ -55,17 +57,17 @@ public class Ant {                  //蚂蚁类
 
     //设置承载量
     public void setCapacity(double capacity){
-        this.capacity = capacity;
+        this.capacity = new BigDecimal(Double.toString(capacity));
     }
 
     //获取承载量
     public double getCapacity(){
-        return capacity;
+        return capacity.doubleValue();
     }
 
     //获取车内剩余空间
     public double getRoom(){
-        return room;
+        return room.doubleValue();
     }
 
     //重置
@@ -112,11 +114,11 @@ public class Ant {                  //蚂蚁类
 
         tabu.add(place);
 
-        if(room >= Map.cc[place].need && Map.ok[place] == false){
+        if(room.compareTo(BigDecimal.valueOf(Map.cc[place].need)) >= 0 && Map.ok[place] == false){
             if(Map.cc[place].need == 0 && place != 0)
                 return pathLength;
             Map.ok[place] = true;
-            room -= Map.cc[place].need;
+            room = room.subtract(BigDecimal.valueOf(Map.cc[place].need));
         }
 
         return pathLength;
@@ -144,10 +146,10 @@ public class Ant {                  //蚂蚁类
 
             for(int i = 0 ; i < Map.clientCount + 1 ; ++i){         //计算和当前直接相连的点并且可以配送的点  （包括配送中心）
                 if(Map.distance[curPlace][i] > 0 && Map.ok[i] == false &&
-                        Map.cc[i].need <= room && Map.distance[curPlace][i] <= maxRemoving){
+                        room.compareTo(BigDecimal.valueOf(Map.cc[i].need)) >= 0 && Map.distance[curPlace][i] <= maxRemoving){
 
                     hormone += (antProduct(curPlace, i) * (alpha + beta) +
-                            ((capacity - (room - Map.cc[i].need)) / capacity) * gamma) / (alpha + beta + gamma);
+                            (capacity.subtract(room.subtract(BigDecimal.valueOf(Map.cc[i].need)).divide(capacity, digit)).doubleValue() * gamma) / (alpha + beta + gamma));
                 }
             }
 
@@ -207,7 +209,7 @@ public class Ant {                  //蚂蚁类
         else{                                       //当连续没产生更优解代数大于等于6时
             for (int i = 0 ; i < Map.clientCount + 1 ; ++i) {
                 if(Map.distance[curPlace][i] > 0 && Map.ok[i] == false &&
-                        Map.cc[i].need <= room && Map.distance[curPlace][i] <= maxRemoving) {
+                        room.compareTo(BigDecimal.valueOf(Map.cc[i].need)) >= 0 && Map.distance[curPlace][i] <= maxRemoving) {
                     to = i;
                     AntProject.count = 0;
                     AntProject.rou = 0.7;
@@ -233,7 +235,7 @@ public class Ant {                  //蚂蚁类
         if (nextPlace < 0)
             throw new IllegalArgumentException("选择的下一个城市错误");
 
-        if(Map.ok[nextPlace] == false && Map.cc[nextPlace].need <= room && Map.cc[nextPlace].need != 0/* && nextPlace != 0*/){
+        if(Map.ok[nextPlace] == false && room.compareTo(BigDecimal.valueOf(Map.cc[nextPlace].need)) >= 0 && Map.cc[nextPlace].need != 0/* && nextPlace != 0*/){
             path.clear();
             path.add(nextPlace);
         }
@@ -272,10 +274,11 @@ public class Ant {                  //蚂蚁类
 
                 double curPlaceHormone = (antProduct(curPlace, i) * (alpha + beta)) / (alpha + beta + gamma);        //当前地点的信息素和满载率综合值
                 if(Map.ok[i] == false)
-                    curPlaceHormone += ((capacity - (room - Map.cc[i].need)) / capacity * gamma) / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
+                    curPlaceHormone += (capacity.subtract(room.subtract(BigDecimal.valueOf(Map.cc[i].need))).divide(capacity, digit).doubleValue() * gamma)
+                            / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
 
                 if(Map.distance[curPlace][i] > 0 && (Map.ok[i] == true ||             //逻辑可能存在错误
-                        Map.cc[i].need > room) && Map.distance[curPlace][i] <= maxRemoving)
+                        room.compareTo(BigDecimal.valueOf(Map.cc[i].need)) < 0) && Map.distance[curPlace][i] <= maxRemoving)
                     curPlaceHormone *= 0.3;
 
                 sum += curPlaceHormone;
@@ -290,10 +293,11 @@ public class Ant {                  //蚂蚁类
 
                 double curPlaceHormone = (antProduct(curPlace, i) * (alpha + beta)) / (alpha + beta + gamma);        //当前地点的信息素和满载率综合值
                 if(Map.ok[i] == false)
-                    curPlaceHormone += ((capacity - (room - Map.cc[i].need)) / capacity * gamma) / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
+                    curPlaceHormone += (capacity.subtract(room.subtract(BigDecimal.valueOf(Map.cc[i].need))).divide(capacity, digit).doubleValue() * gamma)
+                            / (alpha + beta + gamma);//当前地点的信息素和满载率综合值
 
                 if(Map.distance[curPlace][i] > 0 && (Map.ok[i] == true ||             //逻辑可能存在错误
-                        Map.cc[i].need > room) && Map.distance[curPlace][i] <= maxRemoving)
+                        room.compareTo(BigDecimal.valueOf(Map.cc[i].need)) < 0) && Map.distance[curPlace][i] <= maxRemoving)
                     curPlaceHormone *= 0.3;
 
                 sum2 += curPlaceHormone;
@@ -307,7 +311,7 @@ public class Ant {                  //蚂蚁类
 
     //复制信息给当前蚂蚁
     public void copyInformation(Ant ant){
-        room = capacity - (ant.capacity - ant.room);
+        room = capacity.subtract(ant.capacity.subtract(ant.room));
 
         length += ant.length;
 
@@ -318,8 +322,7 @@ public class Ant {                  //蚂蚁类
         while (!temp.isEmpty()){
             tabu.add(temp.removeFirst());
         }
-
-        remainingRoom.add((capacity - room) / capacity);
+        remainingRoom.add(capacity.subtract(room).divide(capacity, digit).doubleValue());
     }
 
     //获得随机数, 范围为 [low, uper]
